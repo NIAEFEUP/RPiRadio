@@ -66,20 +66,41 @@ function respondToJSON(req, res, out, statusCode) {
  */
 
 
-app.get('/ring',function (req,res) {
-/*	child = exec('mpg321 serbiastrong.mp3 ',
-		  function (error, stdout, stderr) {
-   			 console.log('stdout: ' + stdout);
-   			 console.log('stderr: ' + stderr);
-   			 if (error !== null) {
-      				console.log('exec error: ' + error);
-   			 }
+app.get('/play',function (req,res) {
+	child=spawn("mpg321",["serbiastrong.mp3"]);
+	var out={};
+	out.status="Excelent choice!";
+	respondToJSON(req,res,out,200);
+});
 
-		});
-*/
-    child=spawn("mpg321",["serbiastrong.mp3"]);
-var out={};
-	out.status="Ni0ce";
+
+app.get('/play/stop',function (req,res) {
+	
+	var out={};
+	if (child )
+	{
+		child.kill("SIGSTOP");
+		out.status="paused";
+	}
+	else
+	{
+		out.status="no music playing";
+	}
+	respondToJSON(req,res,out,200);
+});
+
+app.get('/play/resume',function (req,res) {
+	
+	var out={};
+	if (child )
+	{
+		child.kill("SIGCONT");
+		out.status="resuming";
+	}
+	else
+	{
+		out.status="no music playing";
+	}
 	respondToJSON(req,res,out,200);
 });
 
