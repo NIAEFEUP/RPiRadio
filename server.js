@@ -2,7 +2,7 @@ var express = require('express'),
 	app = express(),
 	port = 8081;	// Porta por defeito
 var readline = require('readline');
-var exec = require('child_process').exec,
+var exec = require('child_process').exec,spawn=require('child_process').spawn,
     child;
 
 
@@ -10,7 +10,7 @@ var rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
-	
+
 //configuracao
 app.configure(function() {
 	app.use(express.bodyParser());
@@ -64,10 +64,10 @@ function respondToJSON(req, res, out, statusCode) {
 /*
  *	Routes
  */
- 
+
 
 app.get('/ring',function (req,res) {
-	child = exec('mpg321 serbiastrong.mp3 ',
+/*	child = exec('mpg321 serbiastrong.mp3 ',
 		  function (error, stdout, stderr) {
    			 console.log('stdout: ' + stdout);
    			 console.log('stderr: ' + stderr);
@@ -76,10 +76,15 @@ app.get('/ring',function (req,res) {
    			 }
 
 		});
-	var out={};
+*/
+    child=spawn("mpg321",["serbiastrong.mp3"]);
+var out={};
 	out.status="Ni0ce";
 	respondToJSON(req,res,out,200);
 });
+
+
+
 
 
  app.all('*', function (req, res) {
@@ -92,9 +97,23 @@ app.get('/ring',function (req,res) {
 
 
 rl.on("line", function(cmd) {
-  
+
   console.log(cmd );
-     if (cmd=="exit")rl.close();
+  if (child )
+      {
+          if (cmd=="pause")
+              {
+
+                  child.kill("SIGSTOP");
+                 console.log("x");
+              }
+        if (cmd=="resume")
+            {
+                    child.kill("SIGCONT");
+                    console.log("x2");
+            }
+      }
+  if (cmd=="exit")rl.close();
 });
 
 
