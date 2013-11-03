@@ -1,19 +1,34 @@
 var express = require('express'),
+	readline = require('readline'),
+	fs=require('fs');
 	app = express(),
-	port = 8081;	// Porta por defeito
-var readline = require('readline');
-var exec = require('child_process').exec,spawn=require('child_process').spawn,
-    child;
+	port = 8080;	// Porta por defeito
+
+var exec = require('child_process').exec,
+	spawn=require('child_process').spawn,
+    player=null,
+    ringer=null;
+   
+var playStatus=0,playList=[],playHistory=[];
+//playstatus, 0-> no file, 1-> playing, 2-> paused
 
 
 var rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
-
 //configuracao
 app.configure(function() {
-	app.use(express.bodyParser());
+    app.engine('html', require('ejs').renderFile);
+
+    app.use(express.bodyParser({ keepExtensions: true, uploadDir: 'tmp/' }));
+
+    //app.use(express.directory(__dirname+'/public'));
+
+    app.use(express.static(__dirname+'/public'));
+
+    app.set('view engine', 'ejs');
+
 	app.use(function (req, res, next) {
 	    res.setHeader('Server', 'RPi Radio station');
 
@@ -38,8 +53,11 @@ if (args.length > 0) {
 }
 
 
-console.log('Escuta na porta: ' + port)
+console.log('Escuta na porta: ' + port);
 app.listen(port);
+
+
+
 
 
 // Funcoes
@@ -61,47 +79,154 @@ function respondToJSON(req, res, out, statusCode) {
 
 
 
+function play(music)
+{
+	
+	player=spawn("mpg321",[music.path]);
+	player.on("exit",function(code,signal){
+		console.log("player finish");
+		var music=playList.shift();
+		fs.unlink(music.path);
+		playHistory.push(music.name);//.shift -> same as queue.pop, remove current file from list, add it to top of history
+		if (playList.length==0)
+		{
+			playStatus=0;
+			player=null;
+		}
+		else
+		{ 
+			play(playList[0]);
+		}
+	});
+	playStatus=1;
+}
+
+
 /*
  *	Routes
  */
 
 
-app.get('/play',function (req,res) {
-	child=spawn("mpg321",["serbiastrong.mp3"]);
+app.post('/ring',function (req,res) {
+	if (!ringer) //do not ring if already ringing
+	{
+		console.log("ringing");
+		if (playStatus==1)
+		{
+			console.log("pause for ring");
+			player.kill("SIGSTOP");	
+		}
+		ringer=spawn("mpg321",["doorbell-2.mp3"]);
+		ringer.on("exit",function(code,signal){
+			if (playStatus==1)
+			{
+				player.kill("SIGCONT");
+			}
+			console.log("ringer exit");
+			ringer=null;
+		});
+	}
 	var out={};
-	out.status="Excelent choice!";
-	respondToJSON(req,res,out,200);
+	out.status="Ringing";
+	res.redirect('/');
 });
 
 
-app.get('/play/stop',function (req,res) {
+app.get('/',function(req,res)
+{
+	res.render('index',{'playStatus':playStatus,'playList':playList,'playHistory':playHistory});
+});
+
+app.post('/play',function(req,res)
+{
+	var music={};
+	music.name=req.files.music.name;
+	music.path=req.files.music.path;
+	var out={};
+	if (!music.name||(req.files.music.type!="audio/mpeg3"&&req.files.music.type!="audio/x-mpeg-3"))
+	{
+		res.redirect('/');
+		return;
+	}
+	if (!player)
+	{
+		playList.push(music);
+		play(music);
+		out.status="Excelent choice!";
+	}
+	else
+	{	
+		if (playList.length>25)
+		{
+			out.status="Queue limit reached :(";
+		}
+		else
+		{
+			playList.push(music);
+			out.status="In queue, but Excelent choice!";
+			out.queuePosition=playList.length;
+		}
+	}
+	res.redirect('/');
+});
+
+//local files only
+/*app.get('/play/:file',function (req,res) {
+	var file=req.params.file;
+	var out={};
+	if (!player)
+	{
+		playList.push(file);
+		play(file);
+		out.status="Excelent choice!";
+	}
+	else
+	{	
+		if (playList.length>25)
+		{
+			out.status="Queue limit reached :(";
+		}
+		else
+		{
+			playList.push(file);
+			out.status="In queue, but Excelent choice!";
+			out.queuePosition=playList.length;
+		}
+	}
+	respondToJSON(req,res,out,200);
+});*/
+
+
+app.post('/play/pause',function (req,res) {
 	
 	var out={};
-	if (child )
+	if (playStatus==1 )
 	{
-		child.kill("SIGSTOP");
+		player.kill("SIGSTOP");
 		out.status="paused";
+		playStatus=2;
 	}
 	else
 	{
 		out.status="no music playing";
 	}
-	respondToJSON(req,res,out,200);
+	res.redirect('/');
 });
 
-app.get('/play/resume',function (req,res) {
+app.post('/play/resume',function (req,res) {
 	
 	var out={};
-	if (child )
+	if (playStatus==2 )
 	{
-		child.kill("SIGCONT");
+		player.kill("SIGCONT");
 		out.status="resuming";
+		playStatus=1;
 	}
 	else
 	{
-		out.status="no music playing";
+		out.status="no music paused";
 	}
-	respondToJSON(req,res,out,200);
+	res.redirect('/');
 });
 
 
@@ -120,17 +245,17 @@ app.get('/play/resume',function (req,res) {
 rl.on("line", function(cmd) {
 
   console.log(cmd );
-  if (child )
+  if (playStatus!=0 )
       {
           if (cmd=="pause")
               {
 
-                  child.kill("SIGSTOP");
+                  player.kill("SIGSTOP");
                  console.log("x");
               }
         if (cmd=="resume")
             {
-                    child.kill("SIGCONT");
+                    player.kill("SIGCONT");
                     console.log("x2");
             }
       }

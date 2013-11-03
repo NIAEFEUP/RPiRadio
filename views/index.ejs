@@ -1,0 +1,45 @@
+<% include head %>
+
+	<h1>RadioJS, <span class="INTENTIONALTYPO">teh</span> most awesome Radio Station, and most useless use for a Pi</h1>
+
+
+	<form method="post" enctype="multipart/form-data" action="play">
+        <p><input type="file" name="music" placeholder="MP3 SFF!"/></p>
+        <p><input type="submit" class="submit" value="Play it biatch!"/></p>
+	</form>
+	<p><form method="post" action="play/pause">
+        <input type="submit" class="submit" value="Pause"/>
+	</form>
+	<form method="post" action="play/resume">
+        <input type="submit" class="submit" value="Play"/>
+	</form></p>
+	
+	<form method="post" action="ring">
+        <p><input type="submit" class="submit" value="Ring dem f0ckers!"/></p>
+	</form>
+	
+	
+	<div id="queue" class="boxlist">
+	<p>Queue</p>
+	<ul>
+			<% if (playList) {
+				for (var i=0;i<playList.length;i++)
+				{ %>
+			<li><%= playList[i].name %></li>
+			<%	}
+			} %>
+		</ul>
+	</div>
+	<div id="history" class="history">
+	<p>History</p>
+		<ul>
+			<% if (playHistory) {
+				for (var i=0;i<playHistory.length;i++)
+				{ %>
+			<li><%= playHistory[i] %></li>
+			<%	}
+			} %>
+		</ul>
+	</div>
+
+<% include footer %>
