@@ -81,7 +81,7 @@ function respondToJSON(req, res, out, statusCode) {
 
 function play(music)
 {
-	
+	console.log("playing:",music.name);
 	player=spawn("mpg321",[music.path]);
 	player.on("exit",function(code,signal){
 		console.log("player finish");
@@ -116,7 +116,7 @@ app.post('/ring',function (req,res) {
 			console.log("pause for ring");
 			player.kill("SIGSTOP");	
 		}
-		ringer=spawn("mpg321",["doorbell-2.mp3"]);
+		ringer=spawn("mpg321",["ringdingding.mp3"]);
 		ringer.on("exit",function(code,signal){
 			if (playStatus==1)
 			{
@@ -143,11 +143,17 @@ app.post('/play',function(req,res)
 	music.name=req.files.music.name;
 	music.path=req.files.music.path;
 	var out={};
-	if (!music.name||(req.files.music.type!="audio/mpeg3"&&req.files.music.type!="audio/x-mpeg-3"))
-	{
+	
+	if (!music.name||!music.name.match(/.mp3$/))
+	{	
+		fs.unlink(music.path);
+		console.log("request not mp3");
 		res.redirect('/');
 		return;
+		
 	}
+	
+	console.log("added playlist ",music.name);
 	if (!player)
 	{
 		playList.push(music);
