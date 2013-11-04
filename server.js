@@ -116,15 +116,17 @@ app.post('/ring',function (req,res) {
 			console.log("pause for ring");
 			player.kill("SIGSTOP");	
 		}
-		ringer=spawn("mpg321",["ringdingding.mp3"]);
-		ringer.on("exit",function(code,signal){
-			if (playStatus==1)
-			{
-				player.kill("SIGCONT");
-			}
-			console.log("ringer exit");
-			ringer=null;
-		});
+		setTimeout(function(){
+			ringer=spawn("mpg321",["ringdingding.mp3"]);
+			ringer.on("exit",function(code,signal){
+				if (playStatus==1)
+				{
+					player.kill("SIGCONT");
+				}
+				console.log("ringer exit");
+				ringer=null;
+			});
+		},100);
 	}
 	var out={};
 	out.status="Ringing";
@@ -235,6 +237,16 @@ app.post('/play/resume',function (req,res) {
 	res.redirect('/');
 });
 
+app.post('/play/skip',function (req,res) {
+	var out={};
+	if (playStatus!=0&&playList.length>0)
+	{
+		player.kill("SIGKILL");
+		out.status="skipped";
+	}
+	else out.status="no music to skip";
+	res.redirect('/');
+});
 
 
 
