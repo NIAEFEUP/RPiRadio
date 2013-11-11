@@ -11,6 +11,8 @@ var exec = require('child_process').exec,
    
 var playStatus=0,playList=[],playHistory=[];
 //playstatus, 0-> no file, 1-> playing, 2-> paused
+var playMode=1;
+//playmode 1->FM,2->MPG321,3->broadcast stream, to be implemented later
 
 
 var rl = readline.createInterface({
@@ -81,8 +83,13 @@ function respondToJSON(req, res, out, statusCode) {
 
 function play(music)
 {
-	console.log("playing:",music.name);
-	player=spawn("mpg321",[music.path]);
+	console.log("playing:",music.name, music.path);
+	if (playMode==1) // FM transmiter
+		player=exec("avconv -i "+music.path+" -ac 1 -ar 22050 -b 352k -f wav - | sudo ./pifm - 100.0" );
+	else if (playMode==2) // Audio Line Output
+		player=spawn("mpg321",[music.path]); //colunas do RPI
+	//this else is for testing purposes
+	else player=spawn("sudo ./pifm tmp/audio.wav 100.0");
 	player.on("exit",function(code,signal){
 		console.log("player finish");
 		var music=playList.shift();
@@ -248,8 +255,11 @@ app.post('/play/skip',function (req,res) {
 	res.redirect('/');
 });
 
-
-
+app.post('/playmode',function(req,res){ 
+	var mode=Number(req.body.mode);
+	if (mode&&mode>0&&mode<4) playMode=mode;
+	res.redirect('/');
+});
 
  app.all('*', function (req, res) {
 
@@ -262,8 +272,11 @@ app.post('/play/skip',function (req,res) {
 
 rl.on("line", function(cmd) {
 
-  console.log(cmd );
-  if (playStatus!=0 )
+ 	console.log(cmd );
+	if (cmd=="testespawn") player=spawn("sudo ./pifm tmp/audio.wav 100.0");
+  	if (cmd=="testeexec") player=exec("sudo ./pifm tmp/audio.wav 100.0");
+
+	if (playStatus!=0 )
       {
           if (cmd=="pause")
               {
