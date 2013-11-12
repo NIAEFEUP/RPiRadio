@@ -7,6 +7,7 @@ var express = require('express'),
 var exec = require('child_process').exec,
 	spawn=require('child_process').spawn,
     player=null,
+	radio=spawn("sudo",["./pifm","-","100.0"]),
     ringer=null;
    
 var playStatus=0,playList=[],playHistory=[];
@@ -85,7 +86,13 @@ function play(music)
 {
 	console.log("playing:",music.name, music.path);
 	if (playMode==1) // FM transmiter
-		player=exec("avconv -i "+music.path+" -ac 1 -ar 22050 -b 352k -f wav - | sudo ./pifm - 100.0" );
+	{
+		player=spawn("avconv",["-i",music.path,"-ac","1.","-ar","22050","-b","352k","-f","wav","-"]);
+		player.stdout.on("data",function(data){
+			console.log("data");
+			radio.stdin.write(data);
+		});
+	}
 	else if (playMode==2) // Audio Line Output
 		player=spawn("mpg321",[music.path]); //colunas do RPI
 	//this else is for testing purposes
@@ -271,11 +278,12 @@ app.post('/playmode',function(req,res){
 
 
 rl.on("line", function(cmd) {
-
+	//All this code is for testing purpose, shall be commented later
  	console.log(cmd );
-	if (cmd=="testespawn") player=spawn("sudo ./pifm tmp/audio.wav 100.0");
+	if (cmd=="testespawn") player=spawn("sudo",["./pifm","tmp/audio.wav","100.0"]);
   	if (cmd=="testeexec") player=exec("sudo ./pifm tmp/audio.wav 100.0");
 
+		
 	if (playStatus!=0 )
       {
           if (cmd=="pause")
