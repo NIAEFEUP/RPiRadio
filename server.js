@@ -89,20 +89,12 @@ function play(music)
 	{
 		player=spawn("avconv",["-i",music.path,"-ac","1.","-ar","22050","-b","352k","-f","wav","-"]);
 		player.stdout.on("data",function(data){
-		
-			console.log("y",data);
+			console.log("data");
 			radio.stdin.write(data);
-		});
-		player.stderr.on("data",function(data){
-			console.log("x",data);
 		});
 	}
 	else if (playMode==2) // Audio Line Output
 		player=spawn("mpg321",[music.path]); //colunas do RPI
-	else if (playMode==3) //stream output
-	{
-	
-	}
 	//this else is for testing purposes
 	else player=spawn("sudo ./pifm tmp/audio.wav 100.0");
 	player.on("exit",function(code,signal){
