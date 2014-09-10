@@ -1,0 +1,18 @@
+{
+  "author": "NIAEFEUP <ni@aefeup.pt>",
+  "name": "RPiRadio",
+  "description": "Website to upload music and transmit back in fm",
+  "version": "0.0.1",
+  "homepage": "ni.fe.up.pt/RpiRadio/",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/NIAEFEUP/RPiRadio.git"
+  },
+  "main": "server.js",
+  "dependencies": {},
+  "devDependencies": {},
+  "optionalDependencies": {},
+  "engines": {
+    "node": "*"
+  }
+}
